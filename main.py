@@ -1,21 +1,26 @@
 import time
 from price_fetch import get_binance_price, get_kucoin_price
 from alerts import send_alert
-from config import SPREAD_THRESHOLD, last_alert_time, ALERT_COOLDOWN
+from config import SPREAD_THRESHOLD, LAST_ALERT_TIME, ALERT_COOLDOWN
 
 current_time = time.time()
 SYMBOLS = ["BTC", "ETH", "SOL"]
 
 while True:
     for coin in SYMBOLS:
-        binance_price = get_binance_price()
-        kucoin_price = get_kucoin_price()
+        binance_price = get_binance_price(coin)
+        kucoin_price = get_kucoin_price(coin)
 
         if binance_price and kucoin_price:
-            spread = round(abs(binance_price - kucoin_price), 2)
-            print(f"Binance: {binance_price} | KuCoin: {kucoin_price} | Spread: {spread}")
+            if binance_price < kucoin_price:
+                direction = "Buy Binance -> Sell KuCoin"
+            else:
+                direction = "Buy KuCoin -> Sell Binance"
 
-            if spread >= SPREAD_THRESHOLD and current_time - last_alert_time > ALERT_COOLDOWN:
+            spread = round(abs(binance_price - kucoin_price), 2)
+            print(f"{coin} | {direction} | Spread: {spread}")
+
+            if spread >= SPREAD_THRESHOLD and current_time - LAST_ALERT_TIME > ALERT_COOLDOWN:
                 send_alert(
                     f"$$$ Arbitrage Alert!\n"
                     f"Coin: {coin}\n"
@@ -24,6 +29,6 @@ while True:
                     f"Spread: {spread}"
                 )
         
-            last_alert_time = current_time
+            LAST_ALERT_TIME = current_time
 
     time.sleep(10)
